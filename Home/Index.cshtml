@@ -1,0 +1,290 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Saadet</title>
+    <link rel="stylesheet" href="site.css">
+    <style>
+        .difficulty-select {
+            margin-top: 25px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .difficulty-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: 1px solid #0ff;
+            background: transparent;
+            color: #0ff;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+            .difficulty-btn.active {
+                background: #0ff;
+                color: #000;
+                box-shadow: 0 0 15px #0ff;
+            }
+    </style>
+</head>
+<body>
+
+    <div id="menu">
+        <h1>CYBER ARENA</h1>
+        <div style="color: #666; margin-bottom: 20px; text-align: center; line-height: 1.4;">
+            [A][D] HAREKET | [MOUSE] ATEŞ | [E] SİLAH DEĞİŞTİR<br>
+            <span style="color: #ff00ff; font-weight: bold;">[SPACE] OVERLOAD (ULTİ)</span>
+        </div>
+
+        <div class="difficulty-select">
+            <button class="difficulty-btn" onclick="setDiff(1, this)">ÇAYLAK</button>
+            <button class="difficulty-btn active" onclick="setDiff(2, this)">ASKER</button>
+            <button class="difficulty-btn" onclick="setDiff(4, this)">KASAP</button>
+        </div>
+
+        <button onclick="startGame()" style="margin-top: 30px;">SİSTEMİ BAŞLAT</button>
+    </div>
+
+    <div id="hud"></div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let player, bullets, enemies, particles, keys, score, level, gameRunning, frameCount = 0;
+        let casings = [], bloodSplats = [], debris = [], smokes = [];
+        let isMouseDown = false, shakeAmount = 0, flashOpacity = 0, difficulty = 2;
+        let ultiCharge = 0, isUltiActive = false;
+
+        const weapons = [
+            { name: "S-10 PISTOL", fireRate: 15, speed: 15, color: "#fff", shake: 3 },
+            { name: "NEON RIFLE", fireRate: 6, speed: 22, color: "#0ff", shake: 6 }
+        ];
+        let currentWeapon = 0, lastFireTime = 0;
+
+        function setDiff(val, btn) {
+            difficulty = val;
+            document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function initGame() {
+            player = { x: 380, y: 500, w: 40, h: 55, speed: 7, health: 100, shield: 50, maxShield: 50, legAngle: 0 };
+            bullets = []; enemies = []; particles = []; casings = []; bloodSplats = []; debris = []; smokes = [];
+            keys = {}; score = 0; level = 1; gameRunning = false; ultiCharge = 0;
+
+            for (let i = 0; i < 15; i++) {
+                debris.push({
+                    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                    w: Math.random() * 40 + 20, h: Math.random() * 10 + 5,
+                    rot: Math.random() * Math.PI, color: `rgba(40, 40, 70, 0.5)`
+                });
+            }
+        }
+
+        initGame();
+
+        document.addEventListener("keydown", e => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key.toLowerCase() === 'e' && gameRunning) {
+                currentWeapon = (currentWeapon + 1) % weapons.length;
+                createParticles(player.x + 20, player.y + 10, "#f0f", 20);
+            }
+            if (e.code === 'Space' && ultiCharge >= 100 && gameRunning) activateUlti();
+        });
+        document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+        canvas.addEventListener("mousedown", () => isMouseDown = true);
+        window.addEventListener("mouseup", () => isMouseDown = false);
+
+        function activateUlti() {
+            isUltiActive = true;
+            ultiCharge = 0;
+            shakeAmount = 20;
+            setTimeout(() => { isUltiActive = false; }, 3000);
+        }
+
+        function startGame() {
+            document.getElementById("menu").style.display = "none";
+            canvas.style.display = "block";
+            gameRunning = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function shoot(angle = 0) {
+            const weapon = weapons[currentWeapon];
+            const bulletSpeed = isUltiActive ? 25 : weapon.speed;
+            bullets.push({
+                x: player.x + player.w / 2,
+                y: player.y + 10,
+                dx: Math.sin(angle) * bulletSpeed,
+                dy: -Math.cos(angle) * bulletSpeed,
+                color: isUltiActive ? "#f0f" : weapon.color
+            });
+
+            if (!isUltiActive) {
+                casings.push({
+                    x: player.x + player.w / 2, y: player.y + 25,
+                    dx: (Math.random() - 0.5) * 8, dy: Math.random() * 4 + 2,
+                    rot: 0, dRot: Math.random() * 0.3, life: 100
+                });
+                shakeAmount = weapon.shake;
+                flashOpacity = 0.4;
+            }
+            lastFireTime = frameCount;
+        }
+
+        function createParticles(x, y, color, count = 10, speedMul = 1) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x, y, dx: (Math.random() - 0.5) * 8 * speedMul, dy: (Math.random() - 0.5) * 8 * speedMul,
+                    size: Math.random() * 4, color, life: 30
+                });
+            }
+        }
+
+        function update() {
+            frameCount++;
+            if (shakeAmount > 0) shakeAmount *= 0.9;
+            if (flashOpacity > 0) flashOpacity *= 0.85;
+
+            // Kalkan Yenileme
+            if (frameCount % 60 === 0 && player.shield < player.maxShield) player.shield += 1;
+
+            if (isUltiActive) {
+                if (frameCount % 3 === 0) shoot((Math.random() - 0.5) * 1.5);
+                shakeAmount = 5;
+            } else if (isMouseDown && frameCount - lastFireTime >= weapons[currentWeapon].fireRate) {
+                shoot(0);
+            }
+
+            if ((keys["a"] || keys["arrowleft"]) && player.x > 0) { player.x -= player.speed; player.legAngle += 1; }
+            if ((keys["d"] || keys["arrowright"]) && player.x < canvas.width - player.w) { player.x += player.speed; player.legAngle += 1; }
+
+            bullets.forEach((b, i) => {
+                b.x += (b.dx || 0);
+                b.y += b.dy;
+                if (b.y < -30 || b.x < -30 || b.x > 830) bullets.splice(i, 1);
+            });
+
+            casings.forEach((c, i) => {
+                c.x += c.dx; c.y += c.dy; c.rot += c.dRot; c.life--;
+                if (c.y > 580) { c.dy *= -0.3; c.y = 580; }
+                if (c.life <= 0) casings.splice(i, 1);
+            });
+
+            if (Math.random() < (0.01 * difficulty) + (level * 0.005)) {
+                enemies.push({ x: Math.random() * 760, y: -60, w: 40, h: 55, speed: (1.8 + (level * 0.3)) * (difficulty * 0.6) });
+            }
+
+            enemies.forEach((e, ei) => {
+                e.y += e.speed;
+                if (e.x < player.x + player.w && e.x + e.w > player.x && e.y < player.y + player.h && e.y + e.h > player.y) {
+                    if (player.shield > 0) player.shield -= 25; else player.health -= 20;
+                    shakeAmount = 20;
+                    createParticles(player.x + 20, player.y + 20, player.shield > 0 ? "#0ff" : "red", 30, 2);
+                    enemies.splice(ei, 1);
+                }
+                bullets.forEach((b, bi) => {
+                    if (b.x > e.x && b.x < e.x + e.w && b.y > e.y && b.y < e.y + e.h) {
+                        bloodSplats.push({ x: e.x + 20, y: e.y + 30, size: Math.random() * 20 + 10, life: 300 });
+                        createParticles(e.x + 20, e.y + 25, "#ff3300", 20);
+                        enemies.splice(ei, 1); bullets.splice(bi, 1);
+                        score += (10 * difficulty);
+                        if (ultiCharge < 100) ultiCharge += 2;
+                        if (score % 500 === 0) level++;
+                    }
+                });
+                if (e.y > canvas.height) enemies.splice(ei, 1);
+            });
+
+            particles.forEach((p, i) => { p.x += p.dx; p.y += p.dy; p.life--; if (p.life <= 0) particles.splice(i, 1); });
+            bloodSplats.forEach((s, i) => { s.life--; if (s.life <= 0) bloodSplats.splice(i, 1); });
+            if (player.health <= 0) endGame();
+        }
+
+        function draw() {
+            ctx.save();
+            if (shakeAmount > 0.5) ctx.translate(Math.random() * shakeAmount - shakeAmount / 2, Math.random() * shakeAmount - shakeAmount / 2);
+
+            ctx.fillStyle = "#020205"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            debris.forEach(d => {
+                ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot);
+                ctx.fillStyle = d.color; ctx.fillRect(-d.w / 2, -d.h / 2, d.w, d.h); ctx.restore();
+            });
+
+            bloodSplats.forEach(s => {
+                ctx.fillStyle = `rgba(120, 0, 0, ${s.life / 300})`;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill();
+            });
+
+            if (flashOpacity > 0) {
+                let g = ctx.createRadialGradient(player.x + 20, player.y, 0, player.x + 20, player.y, 200);
+                g.addColorStop(0, `rgba(0, 255, 255, ${flashOpacity})`);
+                g.addColorStop(1, "rgba(0,0,0,0)");
+                ctx.fillStyle = g; ctx.fillRect(0, 0, 800, 600);
+            }
+
+            // Siber Kalkan Çizimi
+            if (player.shield > 0) {
+                ctx.beginPath();
+                ctx.arc(player.x + 20, player.y + 25, 45, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(0, 255, 255, ${0.2 + Math.sin(frameCount * 0.1) * 0.1})`;
+                ctx.lineWidth = 2; ctx.stroke();
+            }
+
+            drawHuman(player.x, player.y, isUltiActive ? "#f0f" : "#0ff", false, player.legAngle);
+            enemies.forEach(e => drawHuman(e.x, e.y, "#f30", true, frameCount));
+
+            bullets.forEach(b => {
+                ctx.shadowBlur = 15; ctx.shadowColor = b.color;
+                ctx.fillStyle = b.color; ctx.fillRect(b.x - 2, b.y, 4, 30);
+                ctx.shadowBlur = 0;
+            });
+
+            // Ulti Efekti Ekranı
+            if (isUltiActive) {
+                ctx.fillStyle = `rgba(255, 0, 255, ${0.05 + Math.sin(frameCount * 0.2) * 0.05})`;
+                ctx.fillRect(0, 0, 800, 600);
+            }
+
+            particles.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); });
+
+            let grd = ctx.createRadialGradient(400, 300, 200, 400, 300, 600);
+            grd.addColorStop(0, "rgba(0,0,0,0)"); grd.addColorStop(1, "rgba(0,0,0,0.8)");
+            ctx.fillStyle = grd; ctx.fillRect(0, 0, 800, 600);
+
+            ctx.restore();
+
+            // Gelişmiş HUD
+            document.getElementById("hud").innerHTML = `
+                        <div style="color:#0ff; font-weight:bold;">SYSTEM: ONLINE</div>
+                        <div style="font-size: 28px; color: #fff;">${score.toLocaleString()}</div>
+                        <div style="margin: 5px 0; font-size:12px;">HP / SHIELD</div>
+                        <div style="width:200px; height:8px; background:#111; margin-bottom:4px;"><div style="width:${player.health}%; height:100%; background:#f00;"></div></div>
+                        <div style="width:200px; height:4px; background:#111; margin-bottom:10px;"><div style="width:${(player.shield / player.maxShield) * 100}%; height:100%; background:#0ff;"></div></div>
+                        <div style="color:${ultiCharge >= 100 ? '#f0f' : '#444'}; font-size:14px; font-weight:bold;">OVERLOAD: ${ultiCharge}% ${ultiCharge >= 100 ? 'READY!' : ''}</div>
+                        <div style="width:200px; height:10px; background:#111; border:1px solid ${ultiCharge >= 100 ? '#f0f' : '#222'};"><div style="width:${ultiCharge}%; height:100%; background:#f0f;"></div></div>
+                    `;
+        }
+
+        function drawHuman(x, y, color, isEnemy, off) {
+            ctx.save();
+            let walk = Math.sin(off * 0.2) * 8;
+            ctx.fillStyle = color;
+            ctx.fillRect(x + 10, y + 15, 20, 25);
+            ctx.fillStyle = "#ffdbac"; ctx.fillRect(x + 14, y, 12, 14);
+            ctx.fillStyle = isEnemy ? "#ff0" : "#0ff"; ctx.fillRect(x + 14, y + 5, 12, 3);
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y + 15 + walk, 8, 20); ctx.fillRect(x + 32, y + 15 - walk, 8, 20);
+            ctx.fillRect(x + 10, y + 40, 8, 12 + walk); ctx.fillRect(x + 22, y + 40, 8, 12 - walk);
+            ctx.restore();
+        }
+
+        function gameLoop() { if (!gameRunning) return; update(); draw(); requestAnimationFrame(gameLoop); }
+        function endGame() { gameRunning = false; alert("ARENA TERMINATED\nScore: " + score); location.reload(); }
+    </script>
+</body>
+</html>
