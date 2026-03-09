@@ -1,40 +1,147 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Saadet</title>
-    <link rel="stylesheet" href="site.css">
+    <title>ATİLLACANEROL - Cyber Arena (Warzone Edition)</title>
     <style>
-        .difficulty-select {
-            margin-top: 25px;
-            display: flex;
-            gap: 15px;
+        /* TÜM CSS BURADA - DIŞ DOSYAYA GEREK YOK */
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+        
+        body { 
+            background: #000; 
+            font-family: 'Courier New', Courier, monospace; /* Siber tema için monospace */
+            overflow: hidden; 
+            color: #0ff; 
+            user-select: none;
         }
 
+        /* --- SİBER NAVBAR --- */
+        .cyber-nav {
+            position: fixed; top: 0; left: 0; width: 100%; height: 60px;
+            padding: 0 30px; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0, 10, 20, 0.8); border-bottom: 2px solid #0ff;
+            backdrop-filter: blur(10px); z-index: 9999;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+        .logo { font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px #0ff; font-size: 18px; color: #0ff; }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-links a {
+            color: #0ff; text-decoration: none; font-size: 13px; font-weight: bold;
+            text-transform: uppercase; cursor: pointer; border: 1px solid #0ff;
+            padding: 5px 15px; transition: 0.3s;
+        }
+        .nav-links a:hover { background: #0ff; color: #000; box-shadow: 0 0 10px #0ff; }
+
+        /* --- HAKKIMIZDA PANELİ (MODAL) --- */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.95);
+            display: none; justify-content: center; align-items: center;
+            z-index: 10000; backdrop-filter: blur(10px);
+        }
+        .modal-content {
+            background: #001; border: 3px solid #f0f; padding: 40px;
+            max-width: 550px; width: 90%; text-align: center;
+            box-shadow: 0 0 50px rgba(255, 0, 255, 0.3);
+        }
+        .modal-content h2 { color: #f0f; text-shadow: 0 0 15px #f0f; margin-bottom: 20px; font-size: 28px; text-transform: uppercase;}
+        .modal-content p { color: #ccc; line-height: 1.6; margin-bottom: 15px; font-size: 15px; }
+        .close-modal-btn {
+            margin-top: 25px; padding: 10px 30px; background: none; border: 2px solid #0ff;
+            color: #0ff; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase;
+        }
+        .close-modal-btn:hover { background: #0ff; color: #000; box-shadow: 0 0 15px #0ff; }
+
+        /* --- ANA MENÜ --- */
+        #menu {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: radial-gradient(circle, #001 0%, #000 100%); z-index: 100;
+        }
+        #menu h1 { font-size: 70px; letter-spacing: 10px; text-shadow: 0 0 25px #0ff; margin-bottom: 20px; color: #0ff; text-transform: uppercase;}
+        .difficulty-select { margin: 25px 0; display: flex; gap: 15px; }
         .difficulty-btn {
-            padding: 10px 20px;
-            font-size: 14px;
-            border: 1px solid #0ff;
-            background: transparent;
-            color: #0ff;
-            cursor: pointer;
-            transition: 0.3s;
+            padding: 10px 20px; border: 2px solid #0ff; background: none;
+            color: #0ff; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase;
         }
+        .difficulty-btn.active { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; }
+        .start-btn {
+            padding: 15px 50px; font-size: 22px; background: none; border: 3px solid #0ff;
+            color: #0ff; cursor: pointer; margin-top: 30px; font-weight: bold;
+            transition: 0.3s; text-transform: uppercase; letter-spacing: 2px;
+        }
+        .start-btn:hover { background: #0ff; color: #000; box-shadow: 0 0 30px #0ff; transform: scale(1.05); }
 
-            .difficulty-btn.active {
-                background: #0ff;
-                color: #000;
-                box-shadow: 0 0 15px #0ff;
-            }
+        /* --- OYUN ALANI --- */
+        #gameCanvas { display: none; background: #000; cursor: crosshair; }
+        #hud { position: absolute; top: 80px; left: 20px; z-index: 50; pointer-events: none; font-family: monospace; }
+
+        /* --- YENİ: HAVALI "KAYBETTİN" EKRANI --- */
+        #game-over-screen {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 5000; backdrop-filter: blur(15px);
+            border: 10px solid #f00; /* Kırmızı çerçeve felaket hissi için */
+            box-shadow: 0 0 100px rgba(255, 0, 0, 0.5) inset;
+        }
+        #game-over-screen h1 {
+            font-size: 80px; color: #f00; text-shadow: 0 0 30px #f00;
+            text-transform: uppercase; letter-spacing: 15px; margin-bottom: 10px;
+            animation: glitch 1s infinite; /* Glitch animasyonu */
+        }
+        #game-over-screen h2 { color: #fff; font-size: 30px; margin-bottom: 30px; text-transform: uppercase;}
+        #game-over-screen .stats { color: #aaa; font-size: 18px; margin-bottom: 40px; text-align: center; line-height: 1.6;}
+        #restart-btn {
+            padding: 15px 50px; font-size: 22px; background: none; border: 3px solid #f00;
+            color: #f00; cursor: pointer; font-weight: bold; transition: 0.3s;
+            text-transform: uppercase; letter-spacing: 2px; animation: pulseRed 2s infinite;
+        }
+        #restart-btn:hover { background: #f00; color: #fff; box-shadow: 0 0 30px #f00; transform: scale(1.05); }
+
+        /* Animasyonlar */
+        @@keyframes pulseRed { 0% { box-shadow: 0 0 10px #f00; } 50% { box-shadow: 0 0 25px #f00; } 100% { box-shadow: 0 0 10px #f00; } }
+        @@keyframes glitch {
+            0% { transform: translate(0); text-shadow: 0 0 30px #f00; }
+            20% { transform: translate(-5px, 5px); text-shadow: 2px 2px #0ff; }
+            40% { transform: translate(5px, -5px); text-shadow: -2px -2px #f0f; }
+            60% { transform: translate(-5px, -5px); text-shadow: 2px -2px #0ff; }
+            80% { transform: translate(5px, 5px); text-shadow: -2px 2px #f0f; }
+            100% { transform: translate(0); text-shadow: 0 0 30px #f00; }
+        }
     </style>
 </head>
 <body>
 
+    <nav class="cyber-nav">
+        <div class="logo">SAADET // CORE_OS</div>
+        <div class="nav-links">
+            <a onclick="toggleAbout(true)">HAKKIMIZDA</a>
+            <a onclick="location.reload()">SİSTEMİ YENİLE</a>
+        </div>
+    </nav>
+
+    <div id="about-panel" class="modal-overlay">
+        <div class="modal-content">
+            <h2>SİSTEM ARŞİVİ</h2>
+            <p>Cyber Arena, 2026 yılında "Saadet" protokolü çerçevesinde geliştirilmiş bir hayatta kalma simülasyonudur.</p>
+            <p>Bu arena, siber dünyadaki bozuk veri paketlerini (düşmanları) imha etmek için tasarlanmış yüksek frekanslı bir savaş alanıdır. Artık daha gerçekçi cyborg simulasyonlarına ve detaylı bir savaş alanına sahip!</p>
+            <p style="color: #666; font-size: 12px; margin-top: 10px;">GELİŞTİRİCİ: SAADET_AI // VER: 1.2.0 (WARZONE_UPDATE)</p>
+            <button class="close-modal-btn" onclick="toggleAbout(false)">SİSTEME GERİ DÖN</button>
+        </div>
+    </div>
+
+    <div id="game-over-screen">
+        <h1>SİSTEM ÇÖKTÜ</h1>
+        <h2>ARENA TERMINATED</h2>
+        <div class="stats" id="final-stats">
+            </div>
+        <button id="restart-btn" onclick="location.reload()">SİSTEMİ YENİDEN BAŞLAT</button>
+    </div>
+
     <div id="menu">
         <h1>CYBER ARENA</h1>
-        <div style="color: #666; margin-bottom: 20px; text-align: center; line-height: 1.4;">
+        <div style="color: #666; text-align: center; font-family: monospace; line-height: 1.4; border: 1px solid #222; padding: 15px; background: rgba(0,0,0,0.5);">
             [A][D] HAREKET | [MOUSE] ATEŞ | [E] SİLAH DEĞİŞTİR<br>
-            <span style="color: #ff00ff; font-weight: bold;">[SPACE] OVERLOAD (ULTİ)</span>
+            <span style="color: #f0f;">[SPACE] OVERLOAD (ULTİ)</span>
         </div>
 
         <div class="difficulty-select">
@@ -43,18 +150,23 @@
             <button class="difficulty-btn" onclick="setDiff(4, this)">KASAP</button>
         </div>
 
-        <button onclick="startGame()" style="margin-top: 30px;">SİSTEMİ BAŞLAT</button>
+        <button class="start-btn" onclick="startGame()">SİSTEMİ BAŞLAT</button>
     </div>
 
     <div id="hud"></div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
 
     <script>
+        // --- PANEL KONTROLÜ (HAKKIMIZDA) ---
+        function toggleAbout(open) {
+            document.getElementById('about-panel').style.display = open ? 'flex' : 'none';
+        }
+
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
         let player, bullets, enemies, particles, keys, score, level, gameRunning, frameCount = 0;
-        let casings = [], bloodSplats = [], debris = [], smokes = [];
+        let casings = [], bloodSplats = [], debris = [], glows = [], backParticles = [];
         let isMouseDown = false, shakeAmount = 0, flashOpacity = 0, difficulty = 2;
         let ultiCharge = 0, isUltiActive = false;
 
@@ -72,41 +184,55 @@
 
         function initGame() {
             player = { x: 380, y: 500, w: 40, h: 55, speed: 7, health: 100, shield: 50, maxShield: 50, legAngle: 0 };
-            bullets = []; enemies = []; particles = []; casings = []; bloodSplats = []; debris = []; smokes = [];
+            bullets = []; enemies = []; particles = []; casings = []; bloodSplats = []; debris = []; glows = []; backParticles = [];
             keys = {}; score = 0; level = 1; gameRunning = false; ultiCharge = 0;
 
-            for (let i = 0; i < 15; i++) {
+            // --- ARKA PLAN DETAYLARI ---
+            for (let i = 0; i < 20; i++) { // Savaş enkazı (büyük)
                 debris.push({
                     x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-                    w: Math.random() * 40 + 20, h: Math.random() * 10 + 5,
-                    rot: Math.random() * Math.PI, color: `rgba(40, 40, 70, 0.5)`
+                    w: Math.random() * 50 + 30, h: Math.random() * 10 + 5,
+                    rot: Math.random() * Math.PI, color: `rgba(30, 30, 50, ${Math.random()*0.3+0.1})`
+                });
+            }
+            for (let i = 0; i < 5; i++) { // Arka plandaki parlayan siber çekirdekler
+                glows.push({
+                    x: Math.random() * canvas.width, y: Math.random() * 400,
+                    size: Math.random() * 50 + 20, color: Math.random()>0.5?"#0ff":"#f0f",
+                    pulse: Math.random() * 0.1, pulseDir: 1
+                });
+            }
+            for (let i = 0; i < 100; i++) { // Sürekli uçuşan siber tozlar
+                backParticles.push({
+                    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                    size: Math.random() * 2, dx: (Math.random()-0.5)*0.5, dy: Math.random()*1+0.2, color: `rgba(100,255,255, ${Math.random()*0.3})`
                 });
             }
         }
-
         initGame();
 
+        // Klavye ve fare olayları
         document.addEventListener("keydown", e => {
+            if (!gameRunning) return; 
             keys[e.key.toLowerCase()] = true;
-            if (e.key.toLowerCase() === 'e' && gameRunning) {
+            if (e.key.toLowerCase() === 'e') {
                 currentWeapon = (currentWeapon + 1) % weapons.length;
                 createParticles(player.x + 20, player.y + 10, "#f0f", 20);
             }
-            if (e.code === 'Space' && ultiCharge >= 100 && gameRunning) activateUlti();
+            if (e.code === 'Space' && ultiCharge >= 100) activateUlti();
         });
         document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
         canvas.addEventListener("mousedown", () => isMouseDown = true);
         window.addEventListener("mouseup", () => isMouseDown = false);
 
         function activateUlti() {
-            isUltiActive = true;
-            ultiCharge = 0;
-            shakeAmount = 20;
+            isUltiActive = true; ultiCharge = 0; shakeAmount = 20;
             setTimeout(() => { isUltiActive = false; }, 3000);
         }
 
         function startGame() {
             document.getElementById("menu").style.display = "none";
+            document.querySelector(".cyber-nav").style.display = "none"; 
             canvas.style.display = "block";
             gameRunning = true;
             requestAnimationFrame(gameLoop);
@@ -114,24 +240,13 @@
 
         function shoot(angle = 0) {
             const weapon = weapons[currentWeapon];
-            const bulletSpeed = isUltiActive ? 25 : weapon.speed;
             bullets.push({
-                x: player.x + player.w / 2,
-                y: player.y + 10,
-                dx: Math.sin(angle) * bulletSpeed,
-                dy: -Math.cos(angle) * bulletSpeed,
+                x: player.x + player.w / 2, y: player.y + 10,
+                dx: Math.sin(angle) * (isUltiActive ? 25 : weapon.speed),
+                dy: -Math.cos(angle) * (isUltiActive ? 25 : weapon.speed),
                 color: isUltiActive ? "#f0f" : weapon.color
             });
-
-            if (!isUltiActive) {
-                casings.push({
-                    x: player.x + player.w / 2, y: player.y + 25,
-                    dx: (Math.random() - 0.5) * 8, dy: Math.random() * 4 + 2,
-                    rot: 0, dRot: Math.random() * 0.3, life: 100
-                });
-                shakeAmount = weapon.shake;
-                flashOpacity = 0.4;
-            }
+            if (!isUltiActive) { shakeAmount = weapon.shake; flashOpacity = 0.4; }
             lastFireTime = frameCount;
         }
 
@@ -149,142 +264,114 @@
             if (shakeAmount > 0) shakeAmount *= 0.9;
             if (flashOpacity > 0) flashOpacity *= 0.85;
 
-            // Kalkan Yenileme
-            if (frameCount % 60 === 0 && player.shield < player.maxShield) player.shield += 1;
+            // Arka plan animasyonları
+            glows.forEach(g => { g.size += g.pulse * g.pulseDir; if(g.size > 80 || g.size < 20) g.pulseDir *= -1; });
+            backParticles.forEach(p => { p.y += p.dy; p.x += p.dx; if(p.y > 600) p.y = -10; if(p.x > 800) p.x = 0; if(p.x < 0) p.x = 800; });
 
-            if (isUltiActive) {
-                if (frameCount % 3 === 0) shoot((Math.random() - 0.5) * 1.5);
-                shakeAmount = 5;
-            } else if (isMouseDown && frameCount - lastFireTime >= weapons[currentWeapon].fireRate) {
-                shoot(0);
-            }
+            if (frameCount % 60 === 0 && player.shield < player.maxShield) player.shield += 1;
+            if (isUltiActive && frameCount % 3 === 0) shoot((Math.random() - 0.5) * 1.5);
+            else if (isMouseDown && frameCount - lastFireTime >= weapons[currentWeapon].fireRate) shoot(0);
 
             if ((keys["a"] || keys["arrowleft"]) && player.x > 0) { player.x -= player.speed; player.legAngle += 1; }
             if ((keys["d"] || keys["arrowright"]) && player.x < canvas.width - player.w) { player.x += player.speed; player.legAngle += 1; }
 
-            bullets.forEach((b, i) => {
-                b.x += (b.dx || 0);
-                b.y += b.dy;
-                if (b.y < -30 || b.x < -30 || b.x > 830) bullets.splice(i, 1);
-            });
-
-            casings.forEach((c, i) => {
-                c.x += c.dx; c.y += c.dy; c.rot += c.dRot; c.life--;
-                if (c.y > 580) { c.dy *= -0.3; c.y = 580; }
-                if (c.life <= 0) casings.splice(i, 1);
-            });
-
-            if (Math.random() < (0.01 * difficulty) + (level * 0.005)) {
-                enemies.push({ x: Math.random() * 760, y: -60, w: 40, h: 55, speed: (1.8 + (level * 0.3)) * (difficulty * 0.6) });
-            }
+            bullets.forEach((b, i) => { b.x += b.dx || 0; b.y += b.dy; if (b.y < -30) bullets.splice(i, 1); });
 
             enemies.forEach((e, ei) => {
                 e.y += e.speed;
-                if (e.x < player.x + player.w && e.x + e.w > player.x && e.y < player.y + player.h && e.y + e.h > player.y) {
-                    if (player.shield > 0) player.shield -= 25; else player.health -= 20;
-                    shakeAmount = 20;
-                    createParticles(player.x + 20, player.y + 20, player.shield > 0 ? "#0ff" : "red", 30, 2);
-                    enemies.splice(ei, 1);
-                }
+                if (e.y > canvas.height) enemies.splice(ei, 1);
                 bullets.forEach((b, bi) => {
                     if (b.x > e.x && b.x < e.x + e.w && b.y > e.y && b.y < e.y + e.h) {
                         bloodSplats.push({ x: e.x + 20, y: e.y + 30, size: Math.random() * 20 + 10, life: 300 });
                         createParticles(e.x + 20, e.y + 25, "#ff3300", 20);
                         enemies.splice(ei, 1); bullets.splice(bi, 1);
-                        score += (10 * difficulty);
-                        if (ultiCharge < 100) ultiCharge += 2;
-                        if (score % 500 === 0) level++;
+                        score += (10 * difficulty); if (ultiCharge < 100) ultiCharge += 5;
+                        if (score % 500 === 0 && score > 0) level++;
                     }
                 });
-                if (e.y > canvas.height) enemies.splice(ei, 1);
+                if (e.x < player.x + player.w && e.x + e.w > player.x && e.y < player.y + player.h && e.y + e.h > player.y) endGame();
             });
 
+            if (Math.random() < (0.02 * difficulty) + (level * 0.005)) {
+                enemies.push({ x: Math.random() * 760, y: -60, w: 40, h: 55, speed: 1.5 + level * 0.4 + (difficulty*0.3) });
+            }
             particles.forEach((p, i) => { p.x += p.dx; p.y += p.dy; p.life--; if (p.life <= 0) particles.splice(i, 1); });
             bloodSplats.forEach((s, i) => { s.life--; if (s.life <= 0) bloodSplats.splice(i, 1); });
             if (player.health <= 0) endGame();
         }
 
+        function drawHuman(x, y, color, animationFrame, isEnemy) {
+            ctx.save(); ctx.translate(x, y);
+            let walk = Math.sin(animationFrame * 0.15) * 6;
+            ctx.fillStyle = color;
+            ctx.fillRect(5, 12, 30, 15); ctx.fillStyle = isEnemy?"#300":"#066"; ctx.fillRect(10, 27, 20, 13); // Gövde
+            ctx.fillStyle = color; ctx.fillRect(12, 0, 16, 11); // Kafa
+            ctx.fillStyle = isEnemy?"#ff0":"#0ff"; ctx.fillRect(14, 3, 12, 4); // Vizör
+            ctx.fillStyle = color; // Kollar ve bacaklar
+            ctx.fillRect(-2, 12+walk, 6, 22); ctx.fillRect(36, 12-walk, 6, 22); // Kollar
+            ctx.fillRect(8, 40, 9, 10+walk); ctx.fillRect(23, 40, 9, 10-walk); // Bacaklar
+            ctx.fillStyle = "#333"; ctx.fillRect(8, 50+walk, 9, 6); ctx.fillRect(23, 50-walk, 9, 6); // Botlar
+            ctx.restore();
+        }
+
         function draw() {
             ctx.save();
             if (shakeAmount > 0.5) ctx.translate(Math.random() * shakeAmount - shakeAmount / 2, Math.random() * shakeAmount - shakeAmount / 2);
+            ctx.fillStyle = "#010103"; ctx.fillRect(0, 0, canvas.width, canvas.height); // Arka plan zemini
 
-            ctx.fillStyle = "#020205"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+            // --- YENİ: DETAYLI ARKA PLAN ÇİZİMİ ---
+            backParticles.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); });
             debris.forEach(d => {
-                ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot);
-                ctx.fillStyle = d.color; ctx.fillRect(-d.w / 2, -d.h / 2, d.w, d.h); ctx.restore();
+                ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot); ctx.fillStyle = d.color; ctx.fillRect(-d.w/2, -d.h/2, d.w, d.h); ctx.restore();
+            });
+            glows.forEach(g => {
+                let grd = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, g.size);
+                grd.addColorStop(0, g.color); grd.addColorStop(1, "rgba(0,0,0,0)");
+                ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(g.x, g.y, g.size, 0, Math.PI*2); ctx.fill();
             });
 
             bloodSplats.forEach(s => {
-                ctx.fillStyle = `rgba(120, 0, 0, ${s.life / 300})`;
-                ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = `rgba(120, 0, 0, ${s.life / 300})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2); ctx.fill();
             });
-
-            if (flashOpacity > 0) {
-                let g = ctx.createRadialGradient(player.x + 20, player.y, 0, player.x + 20, player.y, 200);
-                g.addColorStop(0, `rgba(0, 255, 255, ${flashOpacity})`);
-                g.addColorStop(1, "rgba(0,0,0,0)");
-                ctx.fillStyle = g; ctx.fillRect(0, 0, 800, 600);
-            }
-
-            // Siber Kalkan Çizimi
             if (player.shield > 0) {
-                ctx.beginPath();
-                ctx.arc(player.x + 20, player.y + 25, 45, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(0, 255, 255, ${0.2 + Math.sin(frameCount * 0.1) * 0.1})`;
-                ctx.lineWidth = 2; ctx.stroke();
+                ctx.beginPath(); ctx.arc(player.x + 20, player.y + 25, 50, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 + Math.sin(frameCount * 0.1) * 0.1})`; ctx.lineWidth = 3; ctx.stroke();
             }
 
-            drawHuman(player.x, player.y, isUltiActive ? "#f0f" : "#0ff", false, player.legAngle);
-            enemies.forEach(e => drawHuman(e.x, e.y, "#f30", true, frameCount));
-
-            bullets.forEach(b => {
-                ctx.shadowBlur = 15; ctx.shadowColor = b.color;
-                ctx.fillStyle = b.color; ctx.fillRect(b.x - 2, b.y, 4, 30);
-                ctx.shadowBlur = 0;
-            });
-
-            // Ulti Efekti Ekranı
-            if (isUltiActive) {
-                ctx.fillStyle = `rgba(255, 0, 255, ${0.05 + Math.sin(frameCount * 0.2) * 0.05})`;
-                ctx.fillRect(0, 0, 800, 600);
-            }
-
+            drawHuman(player.x, player.y, isUltiActive ? "#f0f" : "#0ff", frameCount, false); // Oyuncu
+            enemies.forEach(e => drawHuman(e.x, e.y, "#f30", frameCount+e.x, true)); // Düşmanlar
+            bullets.forEach(b => { ctx.fillStyle = b.color; ctx.fillRect(b.x - 2, b.y, 4, 30); });
+            if (isUltiActive) { ctx.fillStyle = `rgba(255, 0, 255, 0.05)`; ctx.fillRect(0, 0, 800, 600); }
             particles.forEach(p => { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); });
 
-            let grd = ctx.createRadialGradient(400, 300, 200, 400, 300, 600);
-            grd.addColorStop(0, "rgba(0,0,0,0)"); grd.addColorStop(1, "rgba(0,0,0,0.8)");
-            ctx.fillStyle = grd; ctx.fillRect(0, 0, 800, 600);
+            let grd = ctx.createRadialGradient(400, 300, 200, 400, 300, 600); grd.addColorStop(0, "rgba(0,0,0,0)"); grd.addColorStop(1, "rgba(0,0,0,0.8)");
+            ctx.fillStyle = grd; ctx.fillRect(0, 0, 800, 600); ctx.restore();
 
-            ctx.restore();
-
-            // Gelişmiş HUD
-            document.getElementById("hud").innerHTML = `
-                        <div style="color:#0ff; font-weight:bold;">SYSTEM: ONLINE</div>
-                        <div style="font-size: 28px; color: #fff;">${score.toLocaleString()}</div>
-                        <div style="margin: 5px 0; font-size:12px;">HP / SHIELD</div>
-                        <div style="width:200px; height:8px; background:#111; margin-bottom:4px;"><div style="width:${player.health}%; height:100%; background:#f00;"></div></div>
-                        <div style="width:200px; height:4px; background:#111; margin-bottom:10px;"><div style="width:${(player.shield / player.maxShield) * 100}%; height:100%; background:#0ff;"></div></div>
-                        <div style="color:${ultiCharge >= 100 ? '#f0f' : '#444'}; font-size:14px; font-weight:bold;">OVERLOAD: ${ultiCharge}% ${ultiCharge >= 100 ? 'READY!' : ''}</div>
-                        <div style="width:200px; height:10px; background:#111; border:1px solid ${ultiCharge >= 100 ? '#f0f' : '#222'};"><div style="width:${ultiCharge}%; height:100%; background:#f0f;"></div></div>
-                    `;
+            document.getElementById("hud").innerHTML = `SCORE: ${score.toLocaleString()} | LEVEL: ${level} | ULT: ${ultiCharge}%`;
         }
 
-        function drawHuman(x, y, color, isEnemy, off) {
-            ctx.save();
-            let walk = Math.sin(off * 0.2) * 8;
-            ctx.fillStyle = color;
-            ctx.fillRect(x + 10, y + 15, 20, 25);
-            ctx.fillStyle = "#ffdbac"; ctx.fillRect(x + 14, y, 12, 14);
-            ctx.fillStyle = isEnemy ? "#ff0" : "#0ff"; ctx.fillRect(x + 14, y + 5, 12, 3);
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y + 15 + walk, 8, 20); ctx.fillRect(x + 32, y + 15 - walk, 8, 20);
-            ctx.fillRect(x + 10, y + 40, 8, 12 + walk); ctx.fillRect(x + 22, y + 40, 8, 12 - walk);
-            ctx.restore();
-        }
+        function gameLoop() { if (gameRunning) { update(); draw(); requestAnimationFrame(gameLoop); } }
 
-        function gameLoop() { if (!gameRunning) return; update(); draw(); requestAnimationFrame(gameLoop); }
-        function endGame() { gameRunning = false; alert("ARENA TERMINATED\nScore: " + score); location.reload(); }
+        // --- YENİ: HAVALI GAME OVER EKRANI ---
+        function endGame() {
+            gameRunning = false;
+            canvas.style.display = "none";
+            document.getElementById("hud").style.display = "none";
+            
+            // İstatistikleri doldur
+            let finalStats = document.getElementById("final-stats");
+            let diffName = difficulty === 1 ? "ÇAYLAK" : (difficulty === 2 ? "ASKER" : "KASAP");
+            
+            finalStats.innerHTML = `
+                <span style="color: #0ff;">ZORLUK: ${diffName}</span><br>
+                <span style="font-size: 24px; color: #fff;">SKOR: ${score.toLocaleString()}</span><br>
+                <span style="color: #aaa;">SEVİYE: ${level}</span><br>
+                <span style="color: #666; font-size: 12px; margin-top: 10px; display:inline-block;">BAĞLANTI KESİLDİ // KAYIT_NO: ${Math.floor(Date.now()/1000)}</span>
+            `;
+
+            // Ekranı göster
+            document.getElementById("game-over-screen").style.display = "flex";
+        }
     </script>
 </body>
 </html>
